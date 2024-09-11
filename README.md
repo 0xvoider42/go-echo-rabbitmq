@@ -19,6 +19,9 @@ This is a simple Go microservice that uses the Echo web framework for HTTP handl
     "ID": "5", "item": "just a cammel", "price": 1200, "message_type": "success"
 }` example of a request
 - `(POST) http://localhost:8080/orders` to post orders
+- `(GET) http://localhost:8080/orders` to get all orders
+- `(PUT) http://localhost:8080/orders/:id` to update order
+- `(DELETE) http://localhost:8080/orders/:id` to delete order
 
 ### Extra
 at the moment there is inline documentation
