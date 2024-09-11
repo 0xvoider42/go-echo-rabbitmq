@@ -3,6 +3,7 @@ package handlers
 import (
 	"log"
 	"net/http"
+	"sync"
 
 	"go-echo/app/rabbitmq"
 
@@ -16,6 +17,9 @@ type Order struct {
 	Price       int    `json:"price"`
 	MessageType string `json:"message_type"`
 }
+
+var orders = make(map[string]*Order)
+var mu sync.RWMutex
 
 // OrderHandler receives HTTP requests and sends messages to RabbitMQ
 // This function handles incoming HTTP requests, binds the request body to an Order struct,
@@ -32,6 +36,11 @@ func OrderHandler(c echo.Context) error {
 			"error": "Invalid request body",
 		})
 	}
+
+	// Save order to the global map
+	mu.Lock()
+	orders[order.ID] = order
+	mu.Unlock()
 
 	// Connect to RabbitMQ
 	// This function returns a channel and a connection to RabbitMQ
@@ -67,4 +76,69 @@ func OrderHandler(c echo.Context) error {
 		"orderID":     order.ID,
 		"messageType": order.MessageType,
 	})
+}
+
+func GetAllOrdersHandler(c echo.Context) error {
+	mu.Lock()
+	defer mu.Unlock()
+
+	return c.JSON(http.StatusOK, orders)
+}
+
+func GetOrderHandler(c echo.Context) error {
+	mu.Lock()
+	defer mu.Unlock()
+
+	id := c.Param("id")
+	order, ok := orders[id]
+	if !ok {
+		return c.JSON(http.StatusNotFound, echo.Map{
+			"error": "Order not found",
+		})
+	}
+
+	return c.JSON(http.StatusOK, order)
+}
+
+func UpdateOrderHandler(c echo.Context) error {
+	mu.Lock()
+	defer mu.Unlock()
+
+	id := c.Param("id")
+	order, ok := orders[id]
+	if !ok {
+		return c.JSON(http.StatusNotFound, echo.Map{
+			"error": "Order not found",
+		})
+	}
+
+	newOrder := new(Order)
+	if err := c.Bind(newOrder); err != nil {
+		log.Printf("Error binding request body: %v", err)
+		return c.JSON(http.StatusBadRequest, echo.Map{
+			"error": "Invalid request body",
+		})
+	}
+
+	order.Item = newOrder.Item
+	order.Price = newOrder.Price
+
+	return c.JSON(http.StatusOK, order)
+}
+
+func DeleteOrderHandler(c echo.Context) error {
+	mu.Lock()
+	defer mu.Unlock()
+
+	id := c.Param("id")
+	_, ok := orders[id]
+	if !ok {
+		return c.JSON(http.StatusNotFound, echo.Map{
+			"error": "Order not found",
+		})
+	}
+
+	delete(orders, id)
+
+	return c.NoContent(http.StatusNoContent)
 }
