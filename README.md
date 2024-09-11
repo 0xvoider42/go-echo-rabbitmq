@@ -15,6 +15,9 @@ This is a simple Go microservice that uses the Echo web framework for HTTP handl
 4. `go run app/sever.go` to run the app
 
 ## Usage
+- `{
+    "ID": "5", "item": "just a cammel", "price": 1200, "message_type": "success"
+}` example of a request
 - `(POST) http://localhost:8080/orders` to post orders
 
 ### Extra
